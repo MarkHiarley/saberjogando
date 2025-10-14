@@ -2,7 +2,7 @@ export const CardTrilha = () => {
     return (
         <div className="bg-white border border-green-100 rounded-3xl shadow-md hover:shadow-xl p-6 w-80 transition-all duration-500 hover:-translate-y-1">
             
-            {/* Cabeçalho */}
+            
             <div className="flex justify-between items-center mb-4">
                 <div className="text-4xl drop-shadow-sm">✏️</div>
                 <span className="bg-green-50 text-green-700 text-sm font-semibold px-3 py-1 rounded-full shadow-sm border border-green-200">
@@ -10,17 +10,17 @@ export const CardTrilha = () => {
                 </span>
             </div>
 
-            {/* Título */}
+           
             <h2 className="text-2xl font-bold text-gray-900 mb-2 tracking-tight">
                 Ortografia
             </h2>
 
-            {/* Descrição */}
+            
             <p className="text-gray-600 text-sm mb-6 leading-relaxed">
                 Domine as regras de escrita correta das palavras e avance sua jornada no português!
             </p>
 
-            {/* Barra de progresso */}
+            
             <div className="mb-6">
                 <div className="flex justify-between text-sm font-medium text-gray-700 mb-2">
                     <span>Progresso</span>
@@ -35,7 +35,7 @@ export const CardTrilha = () => {
                 </div>
             </div>
 
-            {/* Rodapé */}
+          
             <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
                     <p className="text-sm text-gray-700 flex items-center gap-1">
