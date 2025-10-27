@@ -1,15 +1,27 @@
-import CardQuestion from "./CardQuestion"
-import { BookOpen, FileText, Eye, Save, Plus, Search } from "lucide-react"
+"use client";
+
+import { useState } from "react";
+import CardQuestion from "./CardQuestion";
+import { BookOpen, FileText, Eye, Save, Plus, Search } from "lucide-react";
 
 interface Questao {
   categoria: string;
   tipo: string;
   dificuldade: string;
   pergunta: string;
+  options: { [key: string]: string };
+  correctLetter: string;
   resposta: string;
+  explicacao: string;
 }
 
-export const QuestionsRegistered: React.FC<{ questoes: Questao[] }> = ({ questoes }) => {
+/*aba de perguntas cadastradas*/
+
+export const QuestionsRegistered: React.FC<{ questoes: Questao[]; onEdit: (index: number, updatedQuestion: Questao) => void; onDelete: (index: number) => void }> = ({
+  questoes,
+  onEdit,
+  onDelete,
+}) => {
   return (
     <div className="mb-6">
       <div className="flex items-center gap-3 mb-8 mt-8">
@@ -41,6 +53,12 @@ export const QuestionsRegistered: React.FC<{ questoes: Questao[] }> = ({ questoe
             dificuldade={questao.dificuldade}
             pergunta={questao.pergunta}
             resposta={questao.resposta}
+            options={questao.options}
+            correctLetter={questao.correctLetter}
+            explicacao={questao.explicacao}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            index={index}
           />
         ))}
       </div>
@@ -48,23 +66,80 @@ export const QuestionsRegistered: React.FC<{ questoes: Questao[] }> = ({ questoe
   );
 };
 
+/*local onde as perguntas vão ficar */
 export const NewQuestion = () => {
   const questoesExemplo: Questao[] = [
-    {
-      categoria: "Ortografia",
-      tipo: "Objetiva",
-      dificuldade: "2",
-      pergunta: "Qual é a grafia correta da palavra?",
-      resposta: "Exemplo",
-    },
-    {
-      categoria: "Sintaxe",
-      tipo: "Dissertativa",
-      dificuldade: "4",
-      pergunta: "Explique a função do sujeito na frase.",
-      resposta: "O sujeito é o termo sobre o qual se declara algo.",
-    },
+    /*onde as questões vão ficar*/
   ];
+
+  const [questoes, setQuestoes] = useState<Questao[]>(questoesExemplo);
+  const [formError, setFormError] = useState<string>("");
+
+  const categoriaMap = new Map([
+    ["ortografia", "Ortografia"],
+    ["morfologia", "Morfologia"],
+    ["sintaxe", "Sintaxe"],
+    ["semantica", "Semântica"],
+    ["fonologia", "Fonologia"],
+  ]);
+
+  const tipoMap = new Map([
+    ["objetiva", "Objetiva"],
+    ["dissertativa", "Dissertativa"],
+    ["interativa", "Interativa"],
+  ]);
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setFormError("");
+    const formData = new FormData(e.currentTarget);
+    const categoria = categoriaMap.get(formData.get("trilha") as string) || "";
+    const tipo = tipoMap.get(formData.get("tipo") as string) || "";
+    const dificuldade = formData.get("dificuldade") as string;
+    const pergunta = formData.get("pergunta") as string;
+    const options: { [key: string]: string } = {};
+    ["A", "B", "C", "D", "E"].forEach(letter => {
+      const value = formData.get(letter) as string;
+      if (value) options[letter] = value;
+    });
+    const correctLetter = formData.get("Letra-A") as string;
+    const resposta = correctLetter && options[correctLetter] ? options[correctLetter] : "";
+    const explicacao = formData.get("explicacao") as string || "";
+
+    if (!categoria) {
+      setFormError("Por favor, selecione uma trilha.");
+      return;
+    }
+    if (!tipo) {
+      setFormError("Por favor, selecione o tipo de questão.");
+      return;
+    }
+    if (!dificuldade) {
+      setFormError("Por favor, selecione a dificuldade.");
+      return;
+    }
+    if (!pergunta.trim()) {
+      setFormError("Por favor, digite a pergunta.");
+      return;
+    }
+    if (tipo === "Objetiva" && !resposta) {
+      setFormError("Por favor, selecione a resposta correta para questões objetivas.");
+      return;
+    }
+
+    const novaQuestao: Questao = {
+      categoria,
+      tipo,
+      dificuldade,
+      pergunta,
+      options,
+      correctLetter,
+      resposta,
+      explicacao,
+    };
+    setQuestoes([...questoes, novaQuestao]);
+    e.currentTarget.reset();
+  };
 
   return (
     <div className="min-h-screen bg-gray-200 w-full p-10 text-black flex flex-col items-center gap-4">
@@ -84,10 +159,16 @@ export const NewQuestion = () => {
         </div>
 
         {/* Formulário de criação de questões */}
-        <form action="" className="bg-white p-6 rounded-xl shadow-md w-full max-w- mx-auto">
+
+        <form
+          onSubmit={handleSubmit}
+          className="bg-white p-6 rounded-xl shadow-md w-full max-w- mx-auto"
+        >
           <div className="flex items-center gap-3 mb-6">
             <Plus className="w-6 h-6 text-blue-600" />
-            <h2 className="text-xl font-semibold text-gray-800">Nova Questão</h2>
+            <h2 className="text-xl font-semibold text-gray-800">
+              Nova Questão
+            </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
@@ -95,7 +176,10 @@ export const NewQuestion = () => {
                 <FileText className="w-4 h-4 text-gray-500" />
                 Trilha
               </label>
-              <select className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+              <select
+                name="trilha"
+                className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
+              >
                 <option value="">Selecione uma trilha</option>
                 <option value="ortografia">📝 Ortografia</option>
                 <option value="morfologia">🔍 Morfologia</option>
@@ -109,7 +193,10 @@ export const NewQuestion = () => {
                 <FileText className="w-4 h-4 text-gray-500" />
                 Tipo de Questão
               </label>
-              <select className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
+              <select
+                name="tipo"
+                className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
+              >
                 <option value="">Selecione o tipo</option>
                 <option value="objetiva">🔘 Objetiva</option>
                 <option value="dissertativa">✏️ Dissertativa</option>
@@ -117,99 +204,113 @@ export const NewQuestion = () => {
               </select>
             </div>
           </div>
-                        
+
           <div className="mb-6">
             <label className="font-medium mb-1 flex items-center gap-2">
               <FileText className="w-4 h-4 text-gray-500" />
               Pergunta
             </label>
-            <textarea rows={3} className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500" placeholder="Digite a pergunta..."
+            <textarea
+              name="pergunta"
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
+              placeholder="Digite a pergunta..."
             ></textarea>
           </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                        <div>
-                            <label className="block font-medium mb-1">Opções de Resposta</label>
-                            <input
-                            type="text"
-                            placeholder="Opção A"
-                            className="w-full border border-gray-300 rounded-lg p-2 mb-2 focus:ring-2 focus:ring-blue-500"
-                            />
-                            <input
-                            type="text"
-                            placeholder="Opção B"
-                            className="w-full border border-gray-300 rounded-lg p-2 mb-2 focus:ring-2 focus:ring-blue-500"
-                            />
-                            <input
-                            type="text"
-                            placeholder="Opção C"
-                            className="w-full border border-gray-300 rounded-lg p-2 mb-2 focus:ring-2 focus:ring-blue-500"
-                            />
-                            <input
-                            type="text"
-                            placeholder="Opção D"
-                            className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="flex flex-col space-y-3">
+              <label className="block font-medium mb-1">Opções de Resposta</label>
 
-            <div>
+                <div className="flex flex-col gap-3">
+                <input
+                  name="A"
+                  type="text"
+                  placeholder="Opção A"
+                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+                <input
+                  name="B"
+                  type="text"
+                  placeholder="Opção B"
+                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+                <input
+                  name="C"
+                  type="text"
+                  placeholder="Opção C"
+                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+                <input
+                  name="D"
+                  type="text"
+                  placeholder="Opção D"
+                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+                <input
+                  name="E"
+                  type="text"
+                  placeholder="Opção E"
+                  className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                />
+                </div>
+              </div>
+
+            <div className="flex flex-col space-y-4">
               <label className=" font-medium mb-1 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-gray-500" />
-                Resposta Correta
+              <FileText className="w-4 h-4 text-gray-500" />
+              Resposta Correta
               </label>
-              <input
-                type="text"
-                placeholder="Digite a resposta correta"
-                className="w-full border border-gray-300 rounded-lg p-2 mb-4 focus:ring-2 focus:ring-blue-500"
-              />
+
+              <select
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
+              name="Letra-A"
+              id=""
+              >
+              <option value="">Selecione a resposta correta</option>
+              <option value="A">Opção A</option>
+              <option value="B">Opção B</option>
+              <option value="C">Opção C</option>
+              <option value="D">Opção D</option>
+              <option value="E">Opção E</option>
+              </select>
 
               <label className=" font-medium mb-1 flex items-center gap-2">
-                <FileText className="w-4 h-4 text-gray-500" />
-                Dificuldade (1–5)
+              <FileText className="w-4 h-4 text-gray-500" />
+              Dificuldade (1–5)
               </label>
               <select
-                className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
+              name="dificuldade"
+              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
               >
-                
-                <option value="">Selecione</option>
-                <option value="1">
-                  ⭐☆☆☆☆ (Muito fácil)
-                </option>
-                <option value="2">
-                  ⭐⭐☆☆☆ (Fácil)
-                </option>
-                <option value="3">
-                  ⭐⭐⭐☆☆ (Médio)
-                </option>
-                <option value="4">
-                  ⭐⭐⭐⭐☆ (Difícil)
-                </option>
-                <option value="5">
-                  ⭐⭐⭐⭐⭐ (Muito difícil)
-                </option>
+              <option value="">Selecione</option>
+              <option value="1">⭐☆☆☆☆ (Muito fácil)</option>
+              <option value="2">⭐⭐☆☆☆ (Fácil)</option>
+              <option value="3">⭐⭐⭐☆☆ (Médio)</option>
+              <option value="4">⭐⭐⭐⭐☆ (Difícil)</option>
+              <option value="5">⭐⭐⭐⭐⭐ (Muito difícil)</option>
               </select>
             </div>
 
-          <div className="mb-6">
-            <label className=" font-medium mb-1 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-gray-500" />
-              Explicação da Resposta
-            </label>
-            <textarea
-              rows={3}
-              className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
-              placeholder="Forneça uma explicação detalhada da resposta..."
-            ></textarea>
+            <div className="mb-6">
+              <label className=" font-medium mb-1 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-gray-500" />
+                Explicação da Resposta
+              </label>
+              <textarea
+                name="explicacao"
+                rows={3}
+                className="w-full border border-gray-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500"
+                placeholder="Forneça uma explicação detalhada da resposta..."
+              ></textarea>
+            </div>
           </div>
-          </div>
+          {formError && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+              {formError}
+            </div>
+          )}
           <div className="flex justify-end gap-4">
-            <button
-              type="button"
-              className="flex items-center gap-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-100 transition"
-            >
-              <Eye className="w-4 h-4" />
-              Visualizar
-            </button>
             <button
               type="submit"
               className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition"
@@ -218,11 +319,21 @@ export const NewQuestion = () => {
               Salvar Questão
             </button>
           </div>
-                    </form>
+        </form>
 
         {/* Seção de questões cadastradas */}
-        <QuestionsRegistered questoes={questoesExemplo} />
+        <QuestionsRegistered
+          questoes={questoes}
+          onEdit={(index, updatedQuestion) => {
+            const updatedQuestoes = [...questoes];
+            updatedQuestoes[index] = updatedQuestion;
+            setQuestoes(updatedQuestoes);
+          }}
+          onDelete={(index) => {
+              setQuestoes(questoes.filter((_, i) => i !== index));
+          }}
+        />
       </div>
     </div>
   );
-}
+};
